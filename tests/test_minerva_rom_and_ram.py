@@ -6,19 +6,34 @@ from amaranth.sim import *
 from minerva.isa import Funct3
 from minerva.core import Minerva
 from amaranth_soc import wishbone
+from amaranth_soc.memory import MemoryMap, ResourceInfo
 from amaranth_soc.wishbone.sram import WishboneSRAM
-from amaranth_soc.wishbone.bus import Arbiter
+from amaranth_soc.wishbone.bus import Arbiter, Decoder
 from amaranth.lib.wiring import connect
 
-def test_image(data=[], cycles=0, checks=[]):
+class MemChunk:
+    def __init__(self, sram=True, size=1024, initial_data=[], starting_address=0):
+        self._sram = sram
+        self._size = size
+        self._initial_data = initial_data
+        self._starting_address = starting_address
+
+def test_image(data=[MemChunk()], cycles=0, checks=[]):
     def test(self):
         m = Module()
         m.submodules.cpu = cpu = Minerva()
-        m.submodules.sram = sram = WishboneSRAM(size=4294967296, data_width=32, granularity=8, writable=True, init=data)
+        m.submodules.mem = mem = Decoder(addr_width=30, data_width=32, alignment=1, granularity=8)
+        for i in range(len(data)):
+            if data[i]._sram:
+                m.submodules[f"ram_{i}"] = WishboneSRAM(size=data[i]._size, data_width=32, granularity=8, writable=True, init=data[i]._initial_data)
+                mem.add(sub_bus=m.submodules[f"ram_{i}"].wb_bus, name=f"ram_{i}", addr=data[i]._starting_address)
+            else:
+                m.submodules[f"ram_{i}"] = WishboneSRAM(size=data[i]._size, data_width=32, granularity=8, writable=False, init=data[i]._initial_data) # 'Flash' memory
+                mem.add(sub_bus=m.submodules[f"ram_{i}"].wb_bus, name=f"ram_{i}", addr=data[i]._starting_address)
         m.submodules.arb = arb = Arbiter(addr_width=30, data_width=32, granularity=8)
         arb.add(cpu.ibus)
         arb.add(cpu.dbus)
-        connect(m, arb.bus, sram.wb_bus)
+        connect(m, arb.bus, mem.bus)
         self.dut = m
         sim = Simulator(self.dut)
 
@@ -36,11 +51,13 @@ def test_image(data=[], cycles=0, checks=[]):
     return test
 
 
+nop = 0b11001000000000000000000000000000
+
 class MinervaRomAndRamTestCase(unittest.TestCase):
     def setUp(self):
         pass
 
     # Test cases:
 
-    test_all_zeros = test_image([], 10, [])
+    test_many_nops = test_image(data=[MemChunk(initial_data=[nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop])], cycles=10, checks=[])
 
