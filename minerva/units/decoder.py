@@ -6,7 +6,7 @@ from amaranth import *
 from amaranth.lib import wiring
 from amaranth.lib.wiring import In, Out
 
-from ..isa import Opcode, Funct3, Funct7, Funct12
+from ..isa import Prefix, Opcode, Funct3, Funct7, Funct12
 
 
 __all__ = ["InstructionDecoder"]
@@ -61,6 +61,7 @@ class InstructionDecoder(wiring.Component):
     wfi:         Out(1)
     funct3:      Out(3)
     illegal:     Out(1)
+    custom:      Out(1)
 
     def __init__(self, with_muldiv):
         self._with_muldiv = with_muldiv
@@ -69,6 +70,7 @@ class InstructionDecoder(wiring.Component):
     def elaborate(self, platform):
         m = Module()
 
+        prefix = Signal(2)
         opcode = Signal(5)
         funct3 = Signal(3)
         funct7 = Signal(7)
@@ -84,6 +86,7 @@ class InstructionDecoder(wiring.Component):
         fmt = Signal(range(Type.J + 1))
 
         m.d.comb += [
+            prefix.eq(insn[0:2]),
             opcode.eq(insn[2:7]),
             funct3.eq(insn[12:15]),
             funct7.eq(insn[25:32]),
@@ -96,29 +99,34 @@ class InstructionDecoder(wiring.Component):
             jimm20.eq(Cat(0, insn[21:31], insn[20], insn[12:20], insn[31])),
         ]
 
-        with m.Switch(opcode):
-            with m.Case(Opcode.LUI):
-                m.d.comb += fmt.eq(Type.U)
-            with m.Case(Opcode.AUIPC):
-                m.d.comb += fmt.eq(Type.U)
-            with m.Case(Opcode.JAL):
-                m.d.comb += fmt.eq(Type.J)
-            with m.Case(Opcode.JALR):
-                m.d.comb += fmt.eq(Type.I)
-            with m.Case(Opcode.BRANCH):
-                m.d.comb += fmt.eq(Type.B)
-            with m.Case(Opcode.LOAD):
-                m.d.comb += fmt.eq(Type.I)
-            with m.Case(Opcode.STORE):
-                m.d.comb += fmt.eq(Type.S)
-            with m.Case(Opcode.OP_IMM_32):
-                m.d.comb += fmt.eq(Type.I)
-            with m.Case(Opcode.OP_32):
-                m.d.comb += fmt.eq(Type.R)
-            with m.Case(Opcode.MISC_MEM):
-                m.d.comb += fmt.eq(Type.I)
-            with m.Case(Opcode.SYSTEM):
-                m.d.comb += fmt.eq(Type.I)
+        with m.Switch(prefix):
+            with m.Case(Prefix.U32):
+                m.d.comb += self.custom.eq(0b0)
+                with m.Switch(opcode):
+                    with m.Case(Opcode.LUI):
+                        m.d.comb += fmt.eq(Type.U)
+                    with m.Case(Opcode.AUIPC):
+                        m.d.comb += fmt.eq(Type.U)
+                    with m.Case(Opcode.JAL):
+                        m.d.comb += fmt.eq(Type.J)
+                    with m.Case(Opcode.JALR):
+                        m.d.comb += fmt.eq(Type.I)
+                    with m.Case(Opcode.BRANCH):
+                        m.d.comb += fmt.eq(Type.B)
+                    with m.Case(Opcode.LOAD):
+                        m.d.comb += fmt.eq(Type.I)
+                    with m.Case(Opcode.STORE):
+                        m.d.comb += fmt.eq(Type.S)
+                    with m.Case(Opcode.OP_IMM_32):
+                        m.d.comb += fmt.eq(Type.I)
+                    with m.Case(Opcode.OP_32):
+                        m.d.comb += fmt.eq(Type.R)
+                    with m.Case(Opcode.MISC_MEM):
+                        m.d.comb += fmt.eq(Type.I)
+                    with m.Case(Opcode.SYSTEM):
+                        m.d.comb += fmt.eq(Type.I)
+            with m.Case(Prefix.CUSTOM):
+                m.d.comb += self.custom.eq(0b1)
 
         with m.Switch(fmt):
             with m.Case(Type.I):

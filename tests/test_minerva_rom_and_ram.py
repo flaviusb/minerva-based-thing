@@ -51,7 +51,8 @@ def test_image(data=[MemChunk()], cycles=0, checks=[]):
     return test
 
 
-nop = 0b11001000000000000000000000000000
+nop    = 0b11001000000000000000000000000000
+custom = 0b01000000000000000000000000000000
 
 class MinervaRomAndRamTestCase(unittest.TestCase):
     def setUp(self):
@@ -60,4 +61,5 @@ class MinervaRomAndRamTestCase(unittest.TestCase):
     # Test cases:
 
     test_many_nops = test_image(data=[MemChunk(initial_data=[nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop])], cycles=10, checks=[])
+    test_custom    = test_image(data=[MemChunk(initial_data=[custom,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop])], cycles=10, checks=[])
 

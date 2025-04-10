@@ -23,6 +23,7 @@ from .units.logic import *
 from .units.multiplier import *
 from .units.predict import *
 from .units.shifter import *
+from .units.custom import *
 
 
 __all__ = ["Minerva"]
@@ -80,6 +81,7 @@ _dx_layout = StructLayout({
     "ecall":                 1,
     "ebreak":                1,
     "mret":                  1,
+    "custom":                1,
 })
 
 
@@ -189,6 +191,7 @@ class Minerva(wiring.Component):
         self._logic     = LogicUnit()
         self._predict   = BranchPredictor()
         self._shifter   = Shifter()
+        self._custom    = Custom()
 
         if with_icache:
             self._fetch = CachedFetchUnit(
@@ -265,6 +268,7 @@ class Minerva(wiring.Component):
         m.submodules.shifter   = self._shifter
         m.submodules.fetch     = self._fetch
         m.submodules.loadstore = self._loadstore
+        m.submodules.custom    = self._custom
 
         if self._with_muldiv:
             m.submodules.multiplier = self._multiplier
@@ -582,6 +586,13 @@ class Minerva(wiring.Component):
             s.kill_on(~self._m.sink.p.branch_predict_taken & self._m.sink.p.branch_taken &
                       self._m.valid)
             s.kill_on((self._exception.m_trap | self._m.sink.p.mret) & self._m.valid)
+
+        # Custom instruction
+
+        m.d.comb += [
+            self._custom.custom.eq(self._decoder.custom),
+            self._custom.pc.eq(self._pc_sel.a_pc),
+        ]
 
 
         # riscv-formal
