@@ -18,7 +18,7 @@ class MemChunk:
         self._initial_data = initial_data
         self._starting_address = starting_address
 
-def test_image(data=[MemChunk()], cycles=0, checks=[]):
+def test_image(data=[MemChunk()], cycles=0, checks=[], vcd_output="dump.vcd"):
     def test(self):
         m = Module()
         m.submodules.cpu = cpu = Minerva()
@@ -45,7 +45,7 @@ def test_image(data=[MemChunk()], cycles=0, checks=[]):
 
         sim.add_clock(1e-6)
         sim.add_testbench(testbench)
-        with sim.write_vcd(vcd_file="dump.vcd"):
+        with sim.write_vcd(vcd_file=vcd_output):
             sim.run()
 
     return test
@@ -60,6 +60,6 @@ class MinervaRomAndRamTestCase(unittest.TestCase):
 
     # Test cases:
 
-    test_many_nops = test_image(data=[MemChunk(initial_data=[nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop])], cycles=10, checks=[])
-    test_custom    = test_image(data=[MemChunk(initial_data=[custom,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop])], cycles=10, checks=[])
+    test_many_nops = test_image(data=[MemChunk(initial_data=[nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop])], cycles=14, checks=[], vcd_output="test_nops.vcd")
+    test_custom    = test_image(data=[MemChunk(initial_data=[custom,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop,nop])], cycles=100, checks=[], vcd_output="test_custom.vcd")
 
