@@ -156,7 +156,8 @@ class InstructionDecoder(wiring.Component):
         def matcher(encodings):
             return reduce(or_, starmap(
                 lambda opc, f3=None, f7=None, f12=None:
-                    (opcode  == opc if opc is not None else 1) \
+                    (prefix  == Prefix.U32)                    \
+                  & (opcode  == opc if opc is not None else 1) \
                   & (funct3  == f3  if f3  is not None else 1) \
                   & (funct7  == f7  if f7  is not None else 1) \
                   & (funct12 == f12 if f12 is not None else 1),
@@ -274,10 +275,10 @@ class InstructionDecoder(wiring.Component):
             self.bypass_x.eq(self.adder | self.logic | self.lui | self.auipc | self.csr),
             self.bypass_m.eq(self.compare | self.divide | self.shift),
 
-            self.illegal.eq((self.instruction[:2] != 0b11) | ~reduce(or_, (
+            self.illegal.eq((self.instruction[1:2] != 0b1) | ~reduce(or_, (
                 self.compare, self.branch, self.adder, self.logic, self.multiply, self.divide, self.shift,
                 self.lui, self.auipc, self.jump, self.load, self.store,
-                self.csr, self.ecall, self.ebreak, self.mret, self.wfi, self.fence_i, self.fence,
+                self.csr, self.ecall, self.ebreak, self.mret, self.wfi, self.fence_i, self.fence, self.custom
             )))
         ]
 

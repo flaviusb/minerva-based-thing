@@ -1,6 +1,6 @@
 class Prefix:
     U32    = 0b11 # This is the normal prefix for all of the 'normal' rv32 32-bit-wide instructions
-    CUSTOM = 0b01 # Taking part of the rv32 compressed instruction space
+    CUSTOM = 0b10 # Taking part of the rv32 compressed instruction space
 
 
 class Opcode:
